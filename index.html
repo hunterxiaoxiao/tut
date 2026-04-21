@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中小学AI学习助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Noto Sans SC', sans-serif; }
+
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
+        .subject-card {
+            cursor: pointer; border-radius: 20px; padding: 24px;
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+            transition: all .3s ease; border: 3px solid transparent;
+        }
+        .subject-card:hover { transform: scale(1.05); border-color: rgba(255,255,255,.5); }
+        .subject-card.selected { border-color: white; box-shadow: 0 0 30px rgba(255,255,255,.4); }
+
+        .grade-btn {
+            width: 90px; height: 90px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .95rem; font-weight: 700; cursor: pointer;
+            transition: all .3s ease; border: 3px solid rgba(255,255,255,.3);
+            text-align: center; line-height: 1.2;
+        }
+        .grade-btn:hover { transform: scale(1.08); background: rgba(255,255,255,.4) !important; border-color: white; }
+
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* 学科主题色 */
+        .theme-chinese  { background: linear-gradient(135deg, #ff9a56, #ff6b6b); }
+        .theme-math     { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .theme-english  { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .theme-physics  { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .theme-chemistry{ background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .theme-biology  { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+        .theme-history  { background: linear-gradient(135deg, #fa709a, #fee140); }
+        .theme-geography{ background: linear-gradient(135deg, #30cfd0, #330867); }
+        .theme-moral    { background: linear-gradient(135deg, #a8edea, #fed6e3); }
+        .theme-science  { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+        .theme-music    { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
+        .theme-art      { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+        .theme-pe       { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
+
+        /* 聊天窗口 */
+        #chat-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        #chat-overlay.active { display: flex; }
+
+        .chat-window {
+            width: 100%;
+            max-width: 480px;
+            height: 80vh;
+            max-height: 680px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 16px 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .chat-body {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 消息区域 */
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .msg-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.6;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .msg-bubble.user {
+            align-self: flex-end;
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+        .msg-bubble.ai {
+            align-self: flex-start;
+            background: white;
+            color: #333;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        }
+        .msg-bubble.ai.typing::after {
+            content: '▋';
+            animation: blink .7s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+        .chat-input-area {
+            padding: 12px 16px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+            background: white;
+            flex-shrink: 0;
+        }
+        .chat-input-area textarea {
+            flex: 1;
+            border: 1px solid #d1d5db;
+            border-radius: 12px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            resize: none;
+            outline: none;
+            max-height: 120px;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+        .chat-input-area textarea:focus { border-color: #667eea; }
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+        .send-btn:hover { background: #5a6fd6; }
+        .send-btn:disabled { background: #d1d5db; cursor: not-allowed; }
+
+        @media(max-width:640px){
+            .subject-card{padding:14px}
+            .grade-btn{width:75px;height:75px;font-size:.85rem}
+            .chat-window { max-height: 100%; height: 100%; border-radius: 0; max-width: 100%; }
+            #chat-overlay { padding: 0; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<!-- ===== 页面1：学科选择 ===== -->
+<div id="page-subject" class="page active">
+    <div class="gradient-bg min-h-screen p-4 md:p-8">
+        <div class="max-w-6xl mx-auto">
+            <header class="mb-10 md:mb-14">
+                <div class="text-center">
+                    <h1 class="text-3xl md:text-5xl font-bold text-white mb-3">🎓 中小学AI学习助手</h1>
+                    <p class="text-white/80 text-lg">选择你想学习的学科，开启智能辅导之旅</p>
+                </div>
+            </header>
+
+            <!-- 学科网格 -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                <div class="subject-card theme-chinese"   data-key="chinese">
+                    <span class="text-4xl">📖</span>
+                    <span class="text-white font-bold text-lg">汉字王国</span>
+                    <span class="text-white/70 text-xs">语文</span>
+                </div>
+                <div class="subject-card theme-math"      data-key="math">
+                    <span class="text-4xl">🧩</span>
+                    <span class="text-white font-bold text-lg">智慧魔方</span>
+                    <span class="text-white/70 text-xs">数学</span>
+                </div>
+                <div class="subject-card theme-english"   data-key="english">
+                    <span class="text-4xl">🌍</span>
+                    <span class="text-white font-bold text-lg">环球探险</span>
+                    <span class="text-white/70 text-xs">英语</span>
+                </div>
+                <div class="subject-card theme-physics"   data-key="physics">
+                    <span class="text-4xl">🔬</span>
+                    <span class="text-white font-bold text-lg">科学实验室</span>
+                    <span class="text-white/70 text-xs">物理</span>
+                </div>
+                <div class="subject-card theme-chemistry" data-key="chemistry">
+                    <span class="text-4xl">🧪</span>
+                    <span class="text-white font-bold text-lg">魔法药水屋</span>
+                    <span class="text-white/70 text-xs">化学</span>
+                </div>
+                <div class="subject-card theme-biology"   data-key="biology">
+                    <span class="text-4xl">🦋</span>
+                    <span class="text-white font-bold text-lg">自然博物馆</span>
+                    <span class="text-white/70 text-xs">生物</span>
+                </div>
+                <div class="subject-card theme-history"   data-key="history">
+                    <span class="text-4xl">⏰</span>
+                    <span class="text-white font-bold text-lg">时光穿梭机</span>
+                    <span class="text-white/70 text-xs">历史</span>
+                </div>
+                <div class="subject-card theme-geography" data-key="geography">
+                    <span class="text-4xl">🗺️</span>
+                    <span class="text-white font-bold text-lg">地球探险队</span>
+                    <span class="text-white/70 text-xs">地理</span>
+                </div>
+                <div class="subject-card theme-moral"     data-key="moral">
+                    <span class="text-4xl">🦸</span>
+                    <span class="text-white font-bold text-lg">正义联盟</span>
+                    <span class="text-white/70 text-xs">道德与法治</span>
+                </div>
+                <div class="subject-card theme-science"   data-key="science">
+                    <span class="text-4xl">🚀</span>
+                    <span class="text-white font-bold text-lg">未来科学家</span>
+                    <span class="text-white/70 text-xs">科学</span>
+                </div>
+                <div class="subject-card theme-music"     data-key="music">
+                    <span class="text-4xl">🎵</span>
+                    <span class="text-white font-bold text-lg">快乐音符</span>
+                    <span class="text-white/70 text-xs">音乐</span>
+                </div>
+                <div class="subject-card theme-art"       data-key="art">
+                    <span class="text-4xl">🌈</span>
+                    <span class="text-white font-bold text-lg">彩虹画室</span>
+                    <span class="text-white/70 text-xs">美术</span>
+                </div>
+                <div class="subject-card theme-pe"        data-key="pe">
+                    <span class="text-4xl">🏆</span>
+                    <span class="text-white font-bold text-lg">运动小超人</span>
+                    <span class="text-white/70 text-xs">体育</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 页面2：年级选择 ===== -->
+<div id="page-grade" class="page">
+    <div id="grade-bg" class="min-h-screen p-4 md:p-8">
+        <div class="max-w-3xl mx-auto">
+            <header class="text-center mb-10 md:mb-14 relative">
+                <button onclick="goSubject()" class="absolute left-0 top-0 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-full flex items-center gap-1 text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>返回
+                </button>
+                <h2 id="grade-title" class="text-2xl md:text-4xl font-bold text-white mb-2">选择年级</h2>
+                <p class="text-white/80">请选择你所在的年级，AI老师会根据年级调整讲解方式</p>
+            </header>
+            <div class="grid grid-cols-3 md:grid-cols-5 gap-4 md:gap-5 justify-items-center">
+                <div class="grade-btn bg-white/25 text-white" data-g="1">一<br>年级</div>
+                <div class="grade-btn bg-white/25 text-white" data-g="2">二<br>年级</div>
+                <div class="grade-btn bg-white/25 text-white" data-g="3">三<br>年级</div>
+                <div class="grade-btn bg-white/25 text-white" data-g="4">四<br>年级</div>
+                <div class="grade-btn bg-white/25 text-white" data-g="5">五<br>年级</div>
+                <div class="grade-btn bg-white/25 text-white" data-g="6">六<br>年级</div>
+                <div class="grade-btn bg-white/25 text-white" data-g="7">七<br>年级</div>
+                <div class="grade-btn bg-white/25 text-white" data-g="8">八<br>年级</div>
+                <div class="grade-btn bg-white/25 text-white" data-g="9">九<br>年级</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== 聊天弹窗（覆盖层）===== -->
+<div id="chat-overlay">
+    <div class="chat-window">
+        <div id="chat-header" class="chat-header">
+            <div class="flex items-center gap-3">
+                <div>
+                    <h3 id="chat-title" class="font-bold text-base"></h3>
+                    <p id="chat-subtitle" class="text-xs text-white/80"></p>
+                </div>
+            </div>
+            <button onclick="closeChat()" class="bg-white/20 hover:bg-white/30 p-2 rounded-full transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="chat-body">
+            <div id="messages"></div>
+            <div class="chat-input-area">
+                <textarea id="chat-input" placeholder="输入你的问题..." rows="1"
+                    onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+                <button id="send-btn" class="send-btn" onclick="sendMessage()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========== 配置 ==========
+// 部署到云端时，把 PROXY_URL 改为你的云函数地址
+// 例如：'https://你的环境ID.ap-shanghai.tencentscf.com/chat'
+// 本地运行时保持 '/api/chat/stream'
+const PROXY_URL = '/api/chat';
+
+const SUBJECTS = {
+    chinese:   { name: '汉字王国',   subject: '语文',      theme: 'theme-chinese',   color: 'linear-gradient(135deg,#ff9a56,#ff6b6b)' },
+    math:      { name: '智慧魔方',   subject: '数学',      theme: 'theme-math',      color: 'linear-gradient(135deg,#4facfe,#00f2fe)' },
+    english:   { name: '环球探险',   subject: '英语',      theme: 'theme-english',   color: 'linear-gradient(135deg,#43e97b,#38f9d7)' },
+    physics:   { name: '科学实验室', subject: '物理',      theme: 'theme-physics',   color: 'linear-gradient(135deg,#667eea,#764ba2)' },
+    chemistry: { name: '魔法药水屋', subject: '化学',      theme: 'theme-chemistry', color: 'linear-gradient(135deg,#f093fb,#f5576c)' },
+    biology:   { name: '自然博物馆', subject: '生物',      theme: 'theme-biology',   color: 'linear-gradient(135deg,#43e97b,#38f9d7)' },
+    history:   { name: '时光穿梭机', subject: '历史',      theme: 'theme-history',   color: 'linear-gradient(135deg,#fa709a,#fee140)' },
+    geography: { name: '地球探险队', subject: '地理',      theme: 'theme-geography', color: 'linear-gradient(135deg,#30cfd0,#667eea)' },
+    moral:     { name: '正义联盟',   subject: '道德与法治', theme: 'theme-moral',    color: 'linear-gradient(135deg,#a8edea,#fed6e3)' },
+    science:   { name: '未来科学家', subject: '科学',      theme: 'theme-science',   color: 'linear-gradient(135deg,#ffecd2,#fcb69f)' },
+    music:     { name: '快乐音符',   subject: '音乐',      theme: 'theme-music',     color: 'linear-gradient(135deg,#ffecd2,#fcb69f)' },
+    art:       { name: '彩虹画室',   subject: '美术',      theme: 'theme-art',       color: 'linear-gradient(135deg,#a18cd1,#fbc2eb)' },
+    pe:        { name: '运动小超人', subject: '体育',      theme: 'theme-pe',        color: 'linear-gradient(135deg,#84fab0,#8fd3f4)' }
+};
+
+const GRADES = ['','一年级','二年级','三年级','四年级','五年级','六年级','七年级','八年级','九年级'];
+
+// ========== 状态 ==========
+let state = { subject: null, grade: null };
+let isSending = false;
+let conversationId = null;
+
+// ========== 页面切换 ==========
+function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+// ========== 学科选择 ==========
+document.querySelectorAll('.subject-card').forEach(card => {
+    card.addEventListener('click', () => {
+        state.subject = card.dataset.key;
+        const cfg = SUBJECTS[state.subject];
+        document.getElementById('grade-bg').className = 'min-h-screen p-4 md:p-8 ' + cfg.theme;
+        document.getElementById('grade-title').textContent = cfg.name + ' · 选择年级';
+        showPage('page-grade');
+    });
+});
+
+// ========== 年级选择 ==========
+document.querySelectorAll('.grade-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        state.grade = parseInt(btn.dataset.g);
+        openChat();
+    });
+});
+
+// ========== 返回学科 ==========
+function goSubject() {
+    state.subject = null;
+    state.grade = null;
+    conversationId = null;
+    showPage('page-subject');
+}
+
+// ========== 打开聊天 ==========
+function openChat() {
+    const cfg = SUBJECTS[state.subject];
+    const gradeName = GRADES[state.grade];
+
+    document.getElementById('chat-title').textContent = cfg.name + ' AI老师';
+    document.getElementById('chat-subtitle').textContent = gradeName + ' · 有问题尽管问我！';
+    document.getElementById('chat-header').style.background = cfg.color;
+
+    // 清空消息，重置对话
+    const messagesEl = document.getElementById('messages');
+    messagesEl.innerHTML = '';
+    conversationId = null;
+
+    // 显示欢迎消息
+    addMessage('ai', `你好！我是你的${cfg.name} AI老师 🎉\n专为${gradeName}同学服务，有任何问题随时问我！`);
+
+    document.getElementById('chat-overlay').classList.add('active');
+    setTimeout(() => document.getElementById('chat-input').focus(), 300);
+}
+
+function closeChat() {
+    document.getElementById('chat-overlay').classList.remove('active');
+}
+
+// ========== 添加消息气泡 ==========
+function addMessage(role, text) {
+    const messagesEl = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg-bubble ' + role;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+}
+
+// ========== 发送消息 ==========
+async function sendMessage() {
+    if (isSending) return;
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    isSending = true;
+    document.getElementById('send-btn').disabled = true;
+
+    addMessage('user', text);
+
+    // 创建AI回复气泡（流式）
+    const aiDiv = addMessage('ai', '');
+    aiDiv.classList.add('typing');
+
+    const cfg = SUBJECTS[state.subject];
+    const systemPrompt = `你是一名专业的${cfg.subject}老师，正在教${GRADES[state.grade]}的学生。请严格按照${GRADES[state.grade]}的学习范围回答，语言简单友好，适合学生理解。`;
+
+    try {
+        const body = {
+            subject: cfg.subject,
+            grade: state.grade,
+            message: text,
+            systemPrompt: systemPrompt,
+            conversationId: conversationId
+        };
+
+        const resp = await fetch(PROXY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (!resp.ok) throw new Error('服务器错误 ' + resp.status);
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '';
+        aiDiv.classList.remove('typing');
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+                if (!line.startsWith('data:')) continue;
+                const raw = line.slice(5).trim();
+                if (!raw || raw === '[DONE]') continue;
+                try {
+                    const data = JSON.parse(raw);
+                    if (data.conversation_id && !conversationId) conversationId = data.conversation_id;
+                    if (data.type === 'answer' && data.content) {
+                        fullText += data.content;
+                        aiDiv.textContent = fullText;
+                        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                    }
+                } catch(e) {}
+            }
+        }
+
+        if (!fullText) {
+            aiDiv.textContent = '抱歉，我没有收到回复，请稍后重试。';
+        }
+
+    } catch(e) {
+        aiDiv.classList.remove('typing');
+        aiDiv.textContent = '⚠️ 连接失败：' + e.message;
+    }
+
+    isSending = false;
+    document.getElementById('send-btn').disabled = false;
+}
+
+// ========== 快捷键 ==========
+function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+}
+
+function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ========== 初始化 ==========
+window.addEventListener('load', () => {
+    showPage('page-subject');
+});
+</script>
+</body>
+</html>

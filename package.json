@@ -1,0 +1,12 @@
+{
+  "name": "ai-tutor",
+  "version": "1.0.0",
+  "description": "中小学AI学习助手",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
