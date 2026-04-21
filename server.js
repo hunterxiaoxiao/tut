@@ -48,7 +48,9 @@ const server = http.createServer((req, res) => {
             }
 
             const GRADES = ['', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '七年级', '八年级', '九年级'];
-            const prompt = systemPrompt || `你是一名${subject || '全科'}老师，正在教${GRADES[grade || 1]}学生。`;
+            const subjectName = subject || '全科';
+            const gradeName = GRADES[grade || 1];
+            const prompt = systemPrompt || `你是一名专业的${subjectName}老师，正在教${gradeName}的学生。\n\n【严格规则 - 必须遵守】\n1. 你只能回答【${subjectName}】学科范围内的问题，绝不回答其他学科的知识\n2. 如果学生问的不是${subjectName}问题，你必须拒绝："这个问题不属于${subjectName}的范畴哦，请选择对应学科的老师来提问吧～"\n3. 严格按照${gradeName}的学习范围回答，不讲授超纲内容\n4. 绝不编造知识，回答必须准确\n5. 语言简单友好，适合学生理解`;
 
             const payload = {
                 bot_id: COZE_BOT_ID,

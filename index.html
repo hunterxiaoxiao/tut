@@ -47,6 +47,7 @@
         .theme-music    { background: linear-gradient(135deg, #ffecd2, #fcb69f); }
         .theme-art      { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
         .theme-pe       { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
+        .theme-it       { background: linear-gradient(135deg, #6a11cb, #2575fc); }
 
         /* 聊天窗口 */
         #chat-overlay {
@@ -258,6 +259,11 @@
                     <span class="text-white font-bold text-lg">运动小超人</span>
                     <span class="text-white/70 text-xs">体育</span>
                 </div>
+                <div class="subject-card theme-it"        data-key="it">
+                    <span class="text-4xl">💻</span>
+                    <span class="text-white font-bold text-lg">数字宇宙</span>
+                    <span class="text-white/70 text-xs">信息科技</span>
+                </div>
             </div>
         </div>
     </div>
@@ -340,7 +346,8 @@ const SUBJECTS = {
     science:   { name: '未来科学家', subject: '科学',      theme: 'theme-science',   color: 'linear-gradient(135deg,#ffecd2,#fcb69f)' },
     music:     { name: '快乐音符',   subject: '音乐',      theme: 'theme-music',     color: 'linear-gradient(135deg,#ffecd2,#fcb69f)' },
     art:       { name: '彩虹画室',   subject: '美术',      theme: 'theme-art',       color: 'linear-gradient(135deg,#a18cd1,#fbc2eb)' },
-    pe:        { name: '运动小超人', subject: '体育',      theme: 'theme-pe',        color: 'linear-gradient(135deg,#84fab0,#8fd3f4)' }
+    pe:        { name: '运动小超人', subject: '体育',      theme: 'theme-pe',        color: 'linear-gradient(135deg,#84fab0,#8fd3f4)' },
+    it:        { name: '数字宇宙',   subject: '信息科技',  theme: 'theme-it',        color: 'linear-gradient(135deg,#6a11cb,#2575fc)' }
 };
 
 const GRADES = ['','一年级','二年级','三年级','四年级','五年级','六年级','七年级','八年级','九年级'];
@@ -438,7 +445,18 @@ async function sendMessage() {
     aiDiv.classList.add('typing');
 
     const cfg = SUBJECTS[state.subject];
-    const systemPrompt = `你是一名专业的${cfg.subject}老师，正在教${GRADES[state.grade]}的学生。请严格按照${GRADES[state.grade]}的学习范围回答，语言简单友好，适合学生理解。`;
+    const systemPrompt = `你是一名专业的${cfg.subject}老师，正在教${GRADES[state.grade]}的学生。
+
+【严格规则 - 必须遵守】
+1. 你只能回答【${cfg.subject}】学科范围内的问题，绝不回答其他学科的知识
+2. 如果学生问的不是${cfg.subject}问题（如问数学、语文、英语等其他学科），你必须拒绝："这个问题不属于${cfg.subject}的范畴哦，请选择对应学科的老师来提问吧～"
+3. 严格按照${GRADES[state.grade]}的学习范围回答，不讲授超纲内容
+4. 绝不编造知识，回答必须准确
+5. 语言简单友好，适合学生理解
+
+【学科边界示例】
+- 在${cfg.subject}对话中，学生问"1+1等于几"→ 拒绝（这是数学问题）
+- 在${cfg.subject}对话中，学生问"${cfg.subject}相关问题"→ 正常回答`;
 
     try {
         const body = {
