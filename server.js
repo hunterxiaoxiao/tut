@@ -40,7 +40,7 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            const { subject, grade, message, conversationId } = data;
+            const { subject, grade, message } = data;
             if (!message) {
                 res.writeHead(400, { 'Content-Type': 'application/json', ...corsHeaders });
                 res.end(JSON.stringify({ error: 'Missing message' }));
@@ -51,7 +51,6 @@ const server = http.createServer((req, res) => {
             const subjectName = subject || '全科';
             const gradeName = GRADES[grade || 1];
 
-            // 固定user_id：同一学科+年级组合用同一用户，保证对话上下文
             const userId = `stu_${subjectName}_${grade || 1}`;
 
             const payload = {
@@ -62,11 +61,6 @@ const server = http.createServer((req, res) => {
                     { role: 'user', content: message, content_type: 'text' }
                 ]
             };
-
-            // 如果有conversationId，加入payload保持对话连贯
-            if (conversationId) {
-                payload.conversation_id = conversationId;
-            }
 
             const postData = JSON.stringify(payload);
 

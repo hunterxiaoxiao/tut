@@ -455,8 +455,7 @@ ${text}`;
         const body = {
             subject: cfg.subject,
             grade: state.grade,
-            message: constrainedMessage,
-            conversationId: conversationId
+            message: constrainedMessage
         };
 
         const resp = await fetch(PROXY_URL, {
