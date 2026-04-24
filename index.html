@@ -469,6 +469,7 @@ ${text}`;
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
         let fullText = '';
+        let currentEvent = '';
         aiDiv.classList.remove('typing');
 
         while (true) {
@@ -477,16 +478,28 @@ ${text}`;
             const chunk = decoder.decode(value, { stream: true });
             const lines = chunk.split('\n');
             for (const line of lines) {
+                // 记录当前 event 类型
+                if (line.startsWith('event:')) {
+                    currentEvent = line.slice(6).trim();
+                    continue;
+                }
                 if (!line.startsWith('data:')) continue;
                 const raw = line.slice(5).trim();
                 if (!raw || raw === '[DONE]') continue;
                 try {
                     const data = JSON.parse(raw);
-                    if (data.conversation_id && !conversationId) conversationId = data.conversation_id;
-                    if (data.type === 'answer' && data.content) {
-                        fullText += data.content;
-                        aiDiv.textContent = fullText;
-                        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                    // 兼容两种格式：
+                    // 1. 扣子v3/chat SSE：event=conversation.message.delta，type=answer，content为增量文本
+                    // 2. 旧版/其他格式：直接 data.type === 'answer'
+                    const isDelta = currentEvent === 'conversation.message.delta';
+                    const isAnswer = data.type === 'answer';
+                    if (isAnswer && (isDelta || !currentEvent)) {
+                        // content 可能为空字符串（思考阶段），只在有实际内容时追加
+                        if (typeof data.content === 'string' && data.content !== '') {
+                            fullText += data.content;
+                            aiDiv.textContent = fullText;
+                            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+                        }
                     }
                 } catch(e) {}
             }
