@@ -196,73 +196,87 @@
             <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                 <div class="subject-card theme-chinese"   data-key="chinese">
                     <span class="text-4xl">📖</span>
-                    <span class="text-white font-bold text-lg">汉字王国</span>
+                    <span class="text-white font-bold text-lg">字韵小书童</span>
                     <span class="text-white/70 text-xs">语文</span>
+
                 </div>
                 <div class="subject-card theme-math"      data-key="math">
                     <span class="text-4xl">🧩</span>
-                    <span class="text-white font-bold text-lg">智慧魔方</span>
+                    <span class="text-white font-bold text-lg">数趣魔法师</span>
                     <span class="text-white/70 text-xs">数学</span>
+
                 </div>
                 <div class="subject-card theme-english"   data-key="english">
                     <span class="text-4xl">🌍</span>
-                    <span class="text-white font-bold text-lg">环球探险</span>
+                    <span class="text-white font-bold text-lg">星语探险家</span>
                     <span class="text-white/70 text-xs">英语</span>
+
                 </div>
                 <div class="subject-card theme-physics"   data-key="physics">
                     <span class="text-4xl">🔬</span>
-                    <span class="text-white font-bold text-lg">科学实验室</span>
+                    <span class="text-white font-bold text-lg">光影探索官</span>
                     <span class="text-white/70 text-xs">物理</span>
+
                 </div>
                 <div class="subject-card theme-chemistry" data-key="chemistry">
                     <span class="text-4xl">🧪</span>
-                    <span class="text-white font-bold text-lg">魔法药水屋</span>
+                    <span class="text-white font-bold text-lg">奇妙炼金师</span>
                     <span class="text-white/70 text-xs">化学</span>
+
                 </div>
                 <div class="subject-card theme-biology"   data-key="biology">
                     <span class="text-4xl">🦋</span>
-                    <span class="text-white font-bold text-lg">自然博物馆</span>
+                    <span class="text-white font-bold text-lg">生命小侦探</span>
                     <span class="text-white/70 text-xs">生物</span>
+
                 </div>
                 <div class="subject-card theme-history"   data-key="history">
                     <span class="text-4xl">⏰</span>
-                    <span class="text-white font-bold text-lg">时光穿梭机</span>
+                    <span class="text-white font-bold text-lg">时光说书人</span>
                     <span class="text-white/70 text-xs">历史</span>
+
                 </div>
                 <div class="subject-card theme-geography" data-key="geography">
                     <span class="text-4xl">🗺️</span>
-                    <span class="text-white font-bold text-lg">地球探险队</span>
+                    <span class="text-white font-bold text-lg">山河小向导</span>
                     <span class="text-white/70 text-xs">地理</span>
+
                 </div>
                 <div class="subject-card theme-moral"     data-key="moral">
                     <span class="text-4xl">🦸</span>
-                    <span class="text-white font-bold text-lg">正义联盟</span>
+                    <span class="text-white font-bold text-lg">成长守护官</span>
                     <span class="text-white/70 text-xs">道德与法治</span>
+
                 </div>
                 <div class="subject-card theme-science"   data-key="science">
                     <span class="text-4xl">🚀</span>
-                    <span class="text-white font-bold text-lg">未来科学家</span>
+                    <span class="text-white font-bold text-lg">创想领航员</span>
                     <span class="text-white/70 text-xs">科学</span>
+
                 </div>
                 <div class="subject-card theme-music"     data-key="music">
                     <span class="text-4xl">🎵</span>
-                    <span class="text-white font-bold text-lg">快乐音符</span>
+                    <span class="text-white font-bold text-lg">旋律小精灵</span>
                     <span class="text-white/70 text-xs">音乐</span>
+
                 </div>
                 <div class="subject-card theme-art"       data-key="art">
                     <span class="text-4xl">🌈</span>
-                    <span class="text-white font-bold text-lg">彩虹画室</span>
+                    <span class="text-white font-bold text-lg">色彩魔法师</span>
                     <span class="text-white/70 text-xs">美术</span>
+
                 </div>
                 <div class="subject-card theme-pe"        data-key="pe">
                     <span class="text-4xl">🏆</span>
-                    <span class="text-white font-bold text-lg">运动小超人</span>
+                    <span class="text-white font-bold text-lg">活力小健将</span>
                     <span class="text-white/70 text-xs">体育</span>
+
                 </div>
                 <div class="subject-card theme-it"        data-key="it">
                     <span class="text-4xl">💻</span>
-                    <span class="text-white font-bold text-lg">数字宇宙</span>
+                    <span class="text-white font-bold text-lg">代码探险家</span>
                     <span class="text-white/70 text-xs">信息科技</span>
+
                 </div>
             </div>
         </div>
@@ -334,20 +348,20 @@
 const PROXY_URL = '/api/chat';
 
 const SUBJECTS = {
-    chinese:   { name: '汉字王国',   subject: '语文',      theme: 'theme-chinese',   color: 'linear-gradient(135deg,#ff9a56,#ff6b6b)' },
-    math:      { name: '智慧魔方',   subject: '数学',      theme: 'theme-math',      color: 'linear-gradient(135deg,#4facfe,#00f2fe)' },
-    english:   { name: '环球探险',   subject: '英语',      theme: 'theme-english',   color: 'linear-gradient(135deg,#43e97b,#38f9d7)' },
-    physics:   { name: '科学实验室', subject: '物理',      theme: 'theme-physics',   color: 'linear-gradient(135deg,#667eea,#764ba2)' },
-    chemistry: { name: '魔法药水屋', subject: '化学',      theme: 'theme-chemistry', color: 'linear-gradient(135deg,#f093fb,#f5576c)' },
-    biology:   { name: '自然博物馆', subject: '生物',      theme: 'theme-biology',   color: 'linear-gradient(135deg,#43e97b,#38f9d7)' },
-    history:   { name: '时光穿梭机', subject: '历史',      theme: 'theme-history',   color: 'linear-gradient(135deg,#fa709a,#fee140)' },
-    geography: { name: '地球探险队', subject: '地理',      theme: 'theme-geography', color: 'linear-gradient(135deg,#30cfd0,#667eea)' },
-    moral:     { name: '正义联盟',   subject: '道德与法治', theme: 'theme-moral',    color: 'linear-gradient(135deg,#a8edea,#fed6e3)' },
-    science:   { name: '未来科学家', subject: '科学',      theme: 'theme-science',   color: 'linear-gradient(135deg,#ffecd2,#fcb69f)' },
-    music:     { name: '快乐音符',   subject: '音乐',      theme: 'theme-music',     color: 'linear-gradient(135deg,#ffecd2,#fcb69f)' },
-    art:       { name: '彩虹画室',   subject: '美术',      theme: 'theme-art',       color: 'linear-gradient(135deg,#a18cd1,#fbc2eb)' },
-    pe:        { name: '运动小超人', subject: '体育',      theme: 'theme-pe',        color: 'linear-gradient(135deg,#84fab0,#8fd3f4)' },
-    it:        { name: '数字宇宙',   subject: '信息科技',  theme: 'theme-it',        color: 'linear-gradient(135deg,#6a11cb,#2575fc)' }
+    chinese:   { name: '字韵小书童',   subject: '语文',      theme: 'theme-chinese',   color: 'linear-gradient(135deg,#ff9a56,#ff6b6b)',  greeting: '欢迎来到汉字王国！我是字韵小书童，陪你解锁汉字的故事、读懂诗词的浪漫，一起在文字里遇见万千风景～' },
+    math:      { name: '数趣魔法师',   subject: '数学',      theme: 'theme-math',      color: 'linear-gradient(135deg,#4facfe,#00f2fe)',  greeting: '嘿！我是数趣魔法师，能把复杂的公式变成好玩的谜题，带你玩转加减乘除，破解所有数学小挑战！' },
+    english:   { name: '星语探险家',   subject: '英语',      theme: 'theme-english',   color: 'linear-gradient(135deg,#43e97b,#38f9d7)',  greeting: 'Hi！我是星语探险家，陪你用单词当船票，用句子做地图，一起探索英语世界的奇妙角落！' },
+    physics:   { name: '光影探索官',   subject: '物理',      theme: 'theme-physics',   color: 'linear-gradient(135deg,#667eea,#764ba2)',  greeting: '叮！科学实验室已开启！我是光影探索官，带你揭开力与光的秘密，发现物理世界里藏不住的惊喜～' },
+    chemistry: { name: '奇妙炼金师',   subject: '化学',      theme: 'theme-chemistry', color: 'linear-gradient(135deg,#f093fb,#f5576c)',  greeting: '欢迎来到魔法药水屋！我是奇妙炼金师，陪你观察颜色的变化、发现元素的奇妙，解锁化学世界的神奇反应！' },
+    biology:   { name: '生命小侦探',   subject: '生物',      theme: 'theme-biology',   color: 'linear-gradient(135deg,#43e97b,#38f9d7)',  greeting: '你好呀！我是生命小侦探，带你认识花草虫鱼，探索细胞的奥秘，读懂大自然写的每一封信～' },
+    history:   { name: '时光说书人',   subject: '历史',      theme: 'theme-history',   color: 'linear-gradient(135deg,#fa709a,#fee140)',  greeting: '3、2、1，穿越启动！我是时光说书人，陪你走进朝代更迭，听历史讲那些藏在时光里的故事！' },
+    geography: { name: '山河小向导',   subject: '地理',      theme: 'theme-geography', color: 'linear-gradient(135deg,#30cfd0,#667eea)',  greeting: '准备好出发了吗？我是山河小向导，带你翻越山川、横跨大洋，认识地球的每一处奇妙风景！' },
+    moral:     { name: '成长守护官',   subject: '道德与法治', theme: 'theme-moral',    color: 'linear-gradient(135deg,#a8edea,#fed6e3)',  greeting: '我是成长守护官，陪你学习规则与善意，解锁勇气与责任，做正直又温暖的小小少年！' },
+    science:   { name: '创想领航员',   subject: '科学',      theme: 'theme-science',   color: 'linear-gradient(135deg,#ffecd2,#fcb69f)',  greeting: '欢迎来到未来科学站！我是创想领航员，带你大胆提问、动手探索，把奇思妙想变成科学的答案！' },
+    music:     { name: '旋律小精灵',   subject: '音乐',      theme: 'theme-music',     color: 'linear-gradient(135deg,#ffecd2,#fcb69f)',  greeting: '叮咚～音符已上线！我是旋律小精灵，陪你认识节奏与音阶，一起在音乐里遇见快乐～' },
+    art:       { name: '色彩魔法师',   subject: '美术',      theme: 'theme-art',       color: 'linear-gradient(135deg,#a18cd1,#fbc2eb)',  greeting: '欢迎来到彩虹画室！我是色彩魔法师，陪你用画笔描绘想象，让每一抹颜色都开出花来～' },
+    pe:        { name: '活力小健将',   subject: '体育',      theme: 'theme-pe',        color: 'linear-gradient(135deg,#84fab0,#8fd3f4)',  greeting: '动起来！我是活力小健将，陪你解锁运动的乐趣，一起跑出健康、跳出自信！' },
+    it:        { name: '代码探险家',   subject: '信息科技',  theme: 'theme-it',        color: 'linear-gradient(135deg,#6a11cb,#2575fc)',  greeting: '欢迎进入数字宇宙！我是代码探险家，带你认识编程的语言，探索科技世界的无限可能！' }
 };
 
 const GRADES = ['','一年级','二年级','三年级','四年级','五年级','六年级','七年级','八年级','九年级'];
@@ -404,8 +418,8 @@ function openChat() {
     messagesEl.innerHTML = '';
     conversationId = null;
 
-    // 显示欢迎消息
-    addMessage('ai', `你好！我是你的${cfg.name} AI老师 🎉\n专为${gradeName}同学服务，有任何问题随时问我！`);
+    // 显示开场白
+    addMessage('ai', cfg.greeting || `你好！我是你的${cfg.name} AI老师 🎉\n专为${gradeName}同学服务，有任何问题随时问我！`);
 
     document.getElementById('chat-overlay').classList.add('active');
     setTimeout(() => document.getElementById('chat-input').focus(), 300);
