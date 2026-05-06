@@ -9,6 +9,62 @@ const COZE_TOKEN = 'pat_6rFw3HSu0kmmeHHO6ICWnEfI5FPlknNZtX9gToGoqOGs9glnucCRnVjq
 const COZE_HOST = 'api.coze.cn';
 const PORT = process.env.PORT || 3000;
 
+// ====== 上传图片到扣子，返回 file_id ======
+function uploadImageToCoze(base64Data, mimeType) {
+    return new Promise((resolve, reject) => {
+        // 去掉 data:image/xxx;base64, 前缀
+        const base64Clean = base64Data.replace(/^data:[^;]+;base64,/, '');
+        const imageBuffer = Buffer.from(base64Clean, 'base64');
+
+        const boundary = '----FormBoundary' + Date.now();
+        const filename = 'image.' + (mimeType === 'image/png' ? 'png' : mimeType === 'image/gif' ? 'gif' : 'jpg');
+
+        // 构建 multipart/form-data
+        const bodyParts = [
+            `--${boundary}\r\n`,
+            `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n`,
+            `Content-Type: ${mimeType || 'image/jpeg'}\r\n`,
+            `\r\n`
+        ];
+        const bodyHeader = Buffer.from(bodyParts.join(''));
+        const bodyFooter = Buffer.from(`\r\n--${boundary}--\r\n`);
+        const totalBody = Buffer.concat([bodyHeader, imageBuffer, bodyFooter]);
+
+        const options = {
+            hostname: COZE_HOST,
+            path: '/v1/files/upload',
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${COZE_TOKEN}`,
+                'Content-Type': `multipart/form-data; boundary=${boundary}`,
+                'Content-Length': totalBody.length
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let body = '';
+            res.on('data', c => body += c);
+            res.on('end', () => {
+                try {
+                    const json = JSON.parse(body);
+                    console.log('[文件上传]', JSON.stringify(json));
+                    if (json.code === 0 && json.data && json.data.id) {
+                        resolve(json.data.id);
+                    } else {
+                        reject(new Error('文件上传失败: ' + body));
+                    }
+                } catch (e) {
+                    reject(new Error('解析上传响应失败: ' + body));
+                }
+            });
+        });
+
+        req.on('error', reject);
+        req.write(totalBody);
+        req.end();
+    });
+}
+
 // 读取前端页面
 const indexHtml = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
 
@@ -40,7 +96,7 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            const { subject, grade, message, image } = data;
+            const { subject, grade, message, image, imageMime } = data;
             if (!message && !image) {
                 res.writeHead(400, { 'Content-Type': 'application/json', ...corsHeaders });
                 res.end(JSON.stringify({ error: 'Missing message or image' }));
@@ -50,71 +106,90 @@ const server = http.createServer((req, res) => {
             const GRADES = ['', '一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '七年级', '八年级', '九年级'];
             const subjectName = subject || '全科';
             const gradeName = GRADES[grade || 1];
-
             const userId = `stu_${subjectName}_${grade || 1}`;
 
-            // 构建消息内容（支持图文混合）
-            let additionalMessages;
-            if (image) {
-                // 有图片时，使用图文混合格式
-                additionalMessages = [
-                    { role: 'user', content: image, content_type: 'image' },
-                    { role: 'user', content: message || '请看图片，帮我解答', content_type: 'text' }
-                ];
-            } else {
-                additionalMessages = [
-                    { role: 'user', content: message, content_type: 'text' }
-                ];
-            }
+            // 如果有图片，先上传到扣子获取 file_id，再发聊天
+            const sendChat = (additionalMessages) => {
+                const payload = {
+                    bot_id: COZE_BOT_ID,
+                    user_id: userId,
+                    stream: true,
+                    auto_save_history: true,
+                    additional_messages: additionalMessages
+                };
 
-            const payload = {
-                bot_id: COZE_BOT_ID,
-                user_id: userId,
-                stream: true,
-                auto_save_history: true,
-                additional_messages: additionalMessages
+                const postData = JSON.stringify(payload);
+
+                const cozeReq = https.request({
+                    hostname: COZE_HOST,
+                    path: '/v3/chat',
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${COZE_TOKEN}`,
+                        'Content-Type': 'application/json',
+                        'Content-Length': Buffer.byteLength(postData)
+                    }
+                }, (cozeRes) => {
+                    if (cozeRes.statusCode !== 200) {
+                        let errBody = '';
+                        cozeRes.on('data', c => errBody += c);
+                        cozeRes.on('end', () => {
+                            console.error('[扣子错误]', cozeRes.statusCode, errBody);
+                            res.writeHead(502, { 'Content-Type': 'application/json', ...corsHeaders });
+                            res.end(JSON.stringify({ error: '扣子API返回错误', status: cozeRes.statusCode, detail: errBody }));
+                        });
+                        return;
+                    }
+                    res.writeHead(200, {
+                        'Content-Type': 'text/event-stream; charset=utf-8',
+                        'Cache-Control': 'no-cache',
+                        'Connection': 'keep-alive',
+                        ...corsHeaders
+                    });
+                    cozeRes.pipe(res);
+                });
+
+                cozeReq.on('error', (e) => {
+                    console.error('[代理错误]', e.message);
+                    res.writeHead(500, { 'Content-Type': 'application/json', ...corsHeaders });
+                    res.end(JSON.stringify({ error: e.message }));
+                });
+
+                cozeReq.write(postData);
+                cozeReq.end();
             };
 
-            const postData = JSON.stringify(payload);
-
-            const cozeReq = https.request({
-                hostname: COZE_HOST,
-                path: '/v3/chat',
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${COZE_TOKEN}`,
-                    'Content-Type': 'application/json',
-                    'Content-Length': Buffer.byteLength(postData)
-                }
-            }, (cozeRes) => {
-                // 只在扣子返回成功状态码时才转发
-                if (cozeRes.statusCode !== 200) {
-                    let errBody = '';
-                    cozeRes.on('data', c => errBody += c);
-                    cozeRes.on('end', () => {
-                        console.error('[扣子错误]', cozeRes.statusCode, errBody);
-                        res.writeHead(502, { 'Content-Type': 'application/json', ...corsHeaders });
-                        res.end(JSON.stringify({ error: '扣子API返回错误', status: cozeRes.statusCode, detail: errBody }));
+            // 有图片时先上传，拿到 file_id 再发聊天
+            if (image) {
+                uploadImageToCoze(image, imageMime || 'image/jpeg')
+                    .then(fileId => {
+                        console.log('[图片上传成功] file_id:', fileId);
+                        // 扣子图片消息格式：content 为 JSON 字符串
+                        const imgContent = JSON.stringify([{ type: 'image', file_id: fileId }]);
+                        const textContent = message || '请看图片，帮我解答这道题';
+                        sendChat([
+                            {
+                                role: 'user',
+                                content: imgContent,
+                                content_type: 'object_string'
+                            },
+                            {
+                                role: 'user',
+                                content: textContent,
+                                content_type: 'text'
+                            }
+                        ]);
+                    })
+                    .catch(err => {
+                        console.error('[图片上传失败]', err.message);
+                        res.writeHead(500, { 'Content-Type': 'application/json', ...corsHeaders });
+                        res.end(JSON.stringify({ error: '图片上传失败: ' + err.message }));
                     });
-                    return;
-                }
-                res.writeHead(200, {
-                    'Content-Type': 'text/event-stream; charset=utf-8',
-                    'Cache-Control': 'no-cache',
-                    'Connection': 'keep-alive',
-                    ...corsHeaders
-                });
-                cozeRes.pipe(res);
-            });
-
-            cozeReq.on('error', (e) => {
-                console.error('[代理错误]', e.message);
-                res.writeHead(500, { 'Content-Type': 'application/json', ...corsHeaders });
-                res.end(JSON.stringify({ error: e.message }));
-            });
-
-            cozeReq.write(postData);
-            cozeReq.end();
+            } else {
+                sendChat([
+                    { role: 'user', content: message, content_type: 'text' }
+                ]);
+            }
         });
         return;
     }

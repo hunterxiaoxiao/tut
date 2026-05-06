@@ -550,9 +550,12 @@ ${text || '请看图片，帮我解答'}`;
             message: constrainedMessage
         };
 
-        // 如果有图片，添加到消息中
+        // 如果有图片，添加到消息中（同时传 MIME 类型，后端上传文件时需要）
         if (image) {
             body.image = image;
+            // 从 data:image/jpeg;base64,... 中提取 MIME 类型
+            const mimeMatch = image.match(/^data:([^;]+);base64,/);
+            body.imageMime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
         }
 
         const resp = await fetch(PROXY_URL, {
