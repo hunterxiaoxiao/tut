@@ -154,10 +154,28 @@
             line-height: 1.5;
         }
         .chat-input-area textarea:focus { border-color: #667eea; }
+        .input-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background .2s, color .2s;
+            margin-bottom: 2px;
+        }
+        .input-btn:hover { background: #e0e0e0; color: #444; }
+        .input-btn.recording { background: #ff4444; color: white; animation: pulse-record 1s infinite; }
+        @keyframes pulse-record { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
         .send-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             background: #667eea;
             color: white;
             border: none;
@@ -167,9 +185,25 @@
             justify-content: center;
             flex-shrink: 0;
             transition: background .2s;
+            margin-bottom: 2px;
         }
         .send-btn:hover { background: #5a6fd6; }
         .send-btn:disabled { background: #d1d5db; cursor: not-allowed; }
+        .image-preview-bar {
+            padding: 8px 16px 0;
+            background: white;
+            display: none;
+        }
+        .image-preview-bar.active { display: flex; gap: 8px; align-items: center; }
+        .image-preview-bar img {
+            width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid #667eea;
+        }
+        .image-preview-bar .remove-img {
+            width: 22px; height: 22px; border-radius: 50%; background: #ff4444; color: white;
+            border: none; cursor: pointer; font-size: 14px; line-height: 1; display: flex;
+            align-items: center; justify-content: center; margin-left: -6px; margin-top: -48px;
+        }
+        .msg-image { max-width: 200px; max-height: 200px; border-radius: 12px; margin-top: 6px; cursor: pointer; }
 
         @media(max-width:640px){
             .subject-card{padding:14px}
@@ -337,7 +371,24 @@
         </div>
         <div class="chat-body">
             <div id="messages"></div>
+            <div id="image-preview-bar" class="image-preview-bar"></div>
             <div class="chat-input-area">
+                <button id="mic-btn" class="input-btn" onclick="toggleVoice()" title="语音输入">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="12" y1="19" x2="12" y2="23"/>
+                        <line stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </button>
+                <button id="img-btn" class="input-btn" onclick="document.getElementById('img-file').click()" title="拍照/上传图片">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect stroke-linecap="round" stroke-linejoin="round" stroke-width="2" x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle stroke-linecap="round" stroke-linejoin="round" stroke-width="2" cx="8.5" cy="8.5" r="1.5"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 15l-5-5L5 21"/>
+                    </svg>
+                    <input type="file" id="img-file" accept="image/*" capture="environment" style="display:none" onchange="handleImageSelect(event)">
+                </button>
                 <textarea id="chat-input" placeholder="输入你的问题..." rows="1"
                     onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
                 <button id="send-btn" class="send-btn" onclick="sendMessage()">
@@ -380,6 +431,7 @@ const GRADES = ['','一年级','二年级','三年级','四年级','五年级','
 let state = { subject: null, grade: null };
 let isSending = false;
 let conversationId = null;
+let pendingImage = null; // base64 图片数据
 
 // ========== 页面切换 ==========
 function showPage(id) {
@@ -440,11 +492,24 @@ function closeChat() {
 }
 
 // ========== 添加消息气泡 ==========
-function addMessage(role, text) {
+function addMessage(role, text, imageBase64) {
     const messagesEl = document.getElementById('messages');
     const div = document.createElement('div');
     div.className = 'msg-bubble ' + role;
-    div.textContent = text;
+    if (imageBase64) {
+        const img = document.createElement('img');
+        img.src = imageBase64;
+        img.className = 'msg-image';
+        img.onclick = () => window.open(imageBase64, '_blank');
+        div.appendChild(img);
+        if (text) {
+            const txt = document.createElement('div');
+            txt.textContent = text;
+            div.appendChild(txt);
+        }
+    } else {
+        div.textContent = text;
+    }
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
     return div;
@@ -455,14 +520,17 @@ async function sendMessage() {
     if (isSending) return;
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
-    if (!text) return;
+    const image = pendingImage;
+    if (!text && !image) return;
 
     input.value = '';
     input.style.height = 'auto';
+    clearImagePreview();
     isSending = true;
     document.getElementById('send-btn').disabled = true;
 
-    addMessage('user', text);
+    // 显示用户消息（含图片）
+    addMessage('user', text, image);
 
     // 创建AI回复气泡（流式）
     const aiDiv = addMessage('ai', '');
@@ -473,7 +541,7 @@ async function sendMessage() {
     // 温和引导：告诉AI角色定位，只在明显跑题时提示
     const constrainedMessage = `[角色设定：你是专门辅导${cfg.subject}的老师，学生是${GRADES[state.grade]}。请用适合${GRADES[state.grade]}学生的语言来回答，尽量结合${cfg.subject}的知识来解答。如果学生的问题完全与${cfg.subject}无关，可以友好地提示他去对应的学科提问。]
 
-${text}`;
+${text || '请看图片，帮我解答'}`;
 
     try {
         const body = {
@@ -482,13 +550,25 @@ ${text}`;
             message: constrainedMessage
         };
 
+        // 如果有图片，添加到消息中
+        if (image) {
+            body.image = image;
+        }
+
         const resp = await fetch(PROXY_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
 
-        if (!resp.ok) throw new Error('服务器错误 ' + resp.status);
+        if (!resp.ok) {
+            let errMsg = '服务器错误 ' + resp.status;
+            try {
+                const errData = await resp.json();
+                errMsg = errData.error || errData.detail || errMsg;
+            } catch(e) {}
+            throw new Error(errMsg);
+        }
 
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
@@ -553,6 +633,123 @@ function handleKey(e) {
 function autoResize(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ========== 语音输入 ==========
+let isRecording = false;
+let recognition = null;
+
+function toggleVoice() {
+    if (isRecording) {
+        stopVoice();
+    } else {
+        startVoice();
+    }
+}
+
+function startVoice() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert('你的浏览器不支持语音输入，请使用 Chrome 或 Edge 浏览器');
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = 'zh-CN';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    const micBtn = document.getElementById('mic-btn');
+    const input = document.getElementById('chat-input');
+
+    recognition.onstart = () => {
+        isRecording = true;
+        micBtn.classList.add('recording');
+        input.placeholder = '正在听你说...';
+    };
+
+    recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+        }
+        input.value = transcript;
+        autoResize(input);
+    };
+
+    recognition.onend = () => {
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        input.placeholder = '输入你的问题...';
+        // 如果有识别结果，自动发送
+        if (input.value.trim()) {
+            sendMessage();
+        }
+    };
+
+    recognition.onerror = (event) => {
+        isRecording = false;
+        micBtn.classList.remove('recording');
+        input.placeholder = '输入你的问题...';
+        if (event.error === 'not-allowed') {
+            alert('请允许使用麦克风权限');
+        }
+    };
+
+    recognition.start();
+}
+
+function stopVoice() {
+    if (recognition) {
+        recognition.stop();
+    }
+    isRecording = false;
+    document.getElementById('mic-btn').classList.remove('recording');
+    document.getElementById('chat-input').placeholder = '输入你的问题...';
+}
+
+// ========== 图片输入 ==========
+function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 检查文件大小（限制5MB）
+    if (file.size > 5 * 1024 * 1024) {
+        alert('图片太大了，请选择5MB以内的图片');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        pendingImage = e.target.result; // data:image/jpeg;base64,...
+        showImagePreview(pendingImage);
+    };
+    reader.readAsDataURL(file);
+    // 重置 input，允许重复选择同一文件
+    event.target.value = '';
+}
+
+function showImagePreview(base64) {
+    const bar = document.getElementById('image-preview-bar');
+    bar.innerHTML = '';
+    bar.classList.add('active');
+
+    const img = document.createElement('img');
+    img.src = base64;
+    bar.appendChild(img);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-img';
+    removeBtn.textContent = '×';
+    removeBtn.onclick = clearImagePreview;
+    bar.appendChild(removeBtn);
+}
+
+function clearImagePreview() {
+    pendingImage = null;
+    const bar = document.getElementById('image-preview-bar');
+    bar.innerHTML = '';
+    bar.classList.remove('active');
 }
 
 // ========== 初始化 ==========

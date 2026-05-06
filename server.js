@@ -40,10 +40,10 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            const { subject, grade, message } = data;
-            if (!message) {
+            const { subject, grade, message, image } = data;
+            if (!message && !image) {
                 res.writeHead(400, { 'Content-Type': 'application/json', ...corsHeaders });
-                res.end(JSON.stringify({ error: 'Missing message' }));
+                res.end(JSON.stringify({ error: 'Missing message or image' }));
                 return;
             }
 
@@ -53,13 +53,26 @@ const server = http.createServer((req, res) => {
 
             const userId = `stu_${subjectName}_${grade || 1}`;
 
+            // 构建消息内容（支持图文混合）
+            let additionalMessages;
+            if (image) {
+                // 有图片时，使用图文混合格式
+                additionalMessages = [
+                    { role: 'user', content: image, content_type: 'image' },
+                    { role: 'user', content: message || '请看图片，帮我解答', content_type: 'text' }
+                ];
+            } else {
+                additionalMessages = [
+                    { role: 'user', content: message, content_type: 'text' }
+                ];
+            }
+
             const payload = {
                 bot_id: COZE_BOT_ID,
                 user_id: userId,
                 stream: true,
-                additional_messages: [
-                    { role: 'user', content: message, content_type: 'text' }
-                ]
+                auto_save_history: true,
+                additional_messages: additionalMessages
             };
 
             const postData = JSON.stringify(payload);
@@ -74,15 +87,28 @@ const server = http.createServer((req, res) => {
                     'Content-Length': Buffer.byteLength(postData)
                 }
             }, (cozeRes) => {
+                // 只在扣子返回成功状态码时才转发
+                if (cozeRes.statusCode !== 200) {
+                    let errBody = '';
+                    cozeRes.on('data', c => errBody += c);
+                    cozeRes.on('end', () => {
+                        console.error('[扣子错误]', cozeRes.statusCode, errBody);
+                        res.writeHead(502, { 'Content-Type': 'application/json', ...corsHeaders });
+                        res.end(JSON.stringify({ error: '扣子API返回错误', status: cozeRes.statusCode, detail: errBody }));
+                    });
+                    return;
+                }
                 res.writeHead(200, {
-                    'Content-Type': 'text/event-stream',
+                    'Content-Type': 'text/event-stream; charset=utf-8',
                     'Cache-Control': 'no-cache',
+                    'Connection': 'keep-alive',
                     ...corsHeaders
                 });
                 cozeRes.pipe(res);
             });
 
             cozeReq.on('error', (e) => {
+                console.error('[代理错误]', e.message);
                 res.writeHead(500, { 'Content-Type': 'application/json', ...corsHeaders });
                 res.end(JSON.stringify({ error: e.message }));
             });
