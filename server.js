@@ -164,19 +164,17 @@ const server = http.createServer((req, res) => {
                 uploadImageToCoze(image, imageMime || 'image/jpeg')
                     .then(fileId => {
                         console.log('[图片上传成功] file_id:', fileId);
-                        // 扣子图片消息格式：content 为 JSON 字符串
-                        const imgContent = JSON.stringify([{ type: 'image', file_id: fileId }]);
-                        const textContent = message || '请看图片，帮我解答这道题';
+                        // 图片和文字必须放在同一条 object_string 消息里
+                        const textPart = message || '请看图片，帮我解答这道题';
+                        const objContent = JSON.stringify([
+                            { type: 'text', text: textPart },
+                            { type: 'image', file_id: fileId }
+                        ]);
                         sendChat([
                             {
                                 role: 'user',
-                                content: imgContent,
+                                content: objContent,
                                 content_type: 'object_string'
-                            },
-                            {
-                                role: 'user',
-                                content: textContent,
-                                content_type: 'text'
                             }
                         ]);
                     })
