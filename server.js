@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const COZE_BOT_ID = '7626567449689063443';
-const COZE_TOKEN = 'pat_6rFw3HSu0kmmeHHO6ICWnEfI5FPlknNZtX9gToGoqOGs9glnucCRnVjqDKlHRCbz';
+const COZE_TOKEN = 'pat_ocfXM73poi1ianmsv9dUi8UdHPJqkB4d7j2Psz47B436jI5ZI9KfdaE6hgJs6ZjE';
 const COZE_HOST = 'api.coze.cn';
 const PORT = process.env.PORT || 3000;
 
