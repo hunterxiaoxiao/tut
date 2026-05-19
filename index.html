@@ -6,6 +6,9 @@
     <title>中小学AI学习助手</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- KaTeX 数学公式渲染 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <style>
         * { font-family: 'Noto Sans SC', sans-serif; }
 
@@ -504,11 +507,21 @@ function addMessage(role, text, imageBase64) {
         div.appendChild(img);
         if (text) {
             const txt = document.createElement('div');
-            txt.textContent = text;
+            // AI 消息用 innerHTML 渲染公式，用户消息用 textContent
+            if (role === 'ai') {
+                txt.innerHTML = renderMathInString(text);
+            } else {
+                txt.textContent = text;
+            }
             div.appendChild(txt);
         }
     } else {
-        div.textContent = text;
+        // AI 消息用 innerHTML 渲染公式，用户消息用 textContent
+        if (role === 'ai') {
+            div.innerHTML = renderMathInString(text || '');
+        } else {
+            div.textContent = text || '';
+        }
     }
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -604,7 +617,8 @@ ${text || '请看图片，帮我解答'}`;
                         // content 可能为空字符串（思考阶段），只在有实际内容时追加
                         if (typeof data.content === 'string' && data.content !== '') {
                             fullText += data.content;
-                            aiDiv.textContent = fullText;
+                            // 用 innerHTML + KaTeX 渲染数学公式
+                            aiDiv.innerHTML = renderMathInString(fullText);
                             document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
                         }
                     }
@@ -636,6 +650,31 @@ function handleKey(e) {
 function autoResize(el) {
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ========== 数学公式渲染（KaTeX） ==========
+function renderMathInString(text) {
+    // 先转义 HTML 特殊字符，防止 XSS
+    let escaped = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+    if (typeof renderMathInElement === 'function') {
+        // 先临时渲染到一个隐藏元素，再取 innerHTML
+        const temp = document.createElement('div');
+        temp.innerHTML = escaped.replace(/\n/g, '<br>');
+        renderMathInElement(temp, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });
+        return temp.innerHTML;
+    }
+    // KaTeX 未加载时回退：只转 <br>
+    return escaped.replace(/\n/g, '<br>');
 }
 
 // ========== 语音输入 ==========
