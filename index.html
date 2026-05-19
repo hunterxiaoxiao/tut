@@ -8,7 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- KaTeX 数学公式渲染 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
         * { font-family: 'Noto Sans SC', sans-serif; }
 
@@ -660,21 +661,45 @@ function renderMathInString(text) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
 
-    if (typeof renderMathInElement === 'function') {
-        // 先临时渲染到一个隐藏元素，再取 innerHTML
-        const temp = document.createElement('div');
-        temp.innerHTML = escaped.replace(/\n/g, '<br>');
-        renderMathInElement(temp, {
-            delimiters: [
-                {left: '$$', right: '$$', display: true},
-                {left: '$', right: '$', display: false}
-            ],
-            throwOnError: false
-        });
-        return temp.innerHTML;
+    // 检查 KaTeX 是否加载完成
+    if (typeof katex === 'undefined') {
+        return escaped.replace(/\n/g, '<br>');
     }
-    // KaTeX 未加载时回退：只转 <br>
-    return escaped.replace(/\n/g, '<br>');
+
+    // 先处理 $$...$$（独立公式），再处理 $...$（行内公式）
+    // 用占位符防止嵌套替换
+    let mathBlocks = [];
+    let result = escaped;
+
+    // 替换 $$...$$
+    result = result.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+        const idx = mathBlocks.length;
+        try {
+            mathBlocks.push(katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false }));
+        } catch(e) {
+            mathBlocks.push(match);
+        }
+        return '%%MATH' + idx + '%%';
+    });
+
+    // 替换 $...$（行内公式）
+    result = result.replace(/\$([^\$\n]+?)\$/g, (match, formula) => {
+        const idx = mathBlocks.length;
+        try {
+            mathBlocks.push(katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false }));
+        } catch(e) {
+            mathBlocks.push(match);
+        }
+        return '%%MATH' + idx + '%%';
+    });
+
+    // 换行转 <br>
+    result = result.replace(/\n/g, '<br>');
+
+    // 还原数学公式占位符
+    result = result.replace(/%%MATH(\d+)%%/g, (match, idx) => mathBlocks[parseInt(idx)]);
+
+    return result;
 }
 
 // ========== 语音输入 ==========
